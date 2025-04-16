@@ -12,7 +12,7 @@ import {
   hideLoadMoreButton,
 } from './js/render-functions';
 
-document.querySelector('.span').classList.remove('loader');
+document.querySelector('.span')?.classList.remove('loader');
 
 const form = document.querySelector('.form');
 const loadMoreBtn = document.querySelector('.btn.visually-hidden');
@@ -43,7 +43,7 @@ const errorServerConnection = {
 form.addEventListener('submit', handleSubmit);
 loadMoreBtn.addEventListener('click', onLoadMore);
 
-function handleSubmit(event) {
+async function handleSubmit(event) {
   event.preventDefault();
 
   hideLoadMoreButton();
@@ -52,7 +52,7 @@ function handleSubmit(event) {
 
   query = event.target.elements.text.value.trim();
 
-  if (!query || query === ' ') {
+  if (!query) {
     iziToast.show(errorMessage);
     form.reset();
     return;
@@ -60,27 +60,26 @@ function handleSubmit(event) {
 
   showLoader();
 
-  getImagesByQuery(query, page)
-    .then(response => {
-      const array = response.data.hits;
-      maxPages = Math.ceil(response.data.totalHits / array.length);
+  try {
+    const response = await getImagesByQuery(query, page);
+    const array = response.data.hits;
+    maxPages = Math.ceil(response.data.totalHits / 15);
 
-      if (!array.length) {
-        noData();
-        return;
-      }
-      hideLoader();
-      createGallery(array);
+    if (!array.length) {
+      noData();
+      return;
+    }
+    hideLoader();
+    createGallery(array);
 
-      if (page < maxPages) {
-        showLoadMoreButton();
-      }
-    })
-    .catch(error => {
-      console.log(error.message);
-      hideLoader();
-      iziToast.show(errorServerConnection);
-    });
+    if (page < maxPages) {
+      showLoadMoreButton();
+    }
+  } catch (error) {
+    console.log(error.message);
+    hideLoader();
+    iziToast.show(errorServerConnection);
+  }
 
   form.reset();
 }
@@ -121,7 +120,11 @@ async function onLoadMore() {
 
     showLoadMoreButton();
   } catch (error) {
-    alert(error.message);
+    iziToast.error({
+      title: 'ERROR',
+      message: error.message,
+      position: 'topRight',
+    });
     hideLoader();
   }
 }
